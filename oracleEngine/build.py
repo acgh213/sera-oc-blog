@@ -1,12 +1,15 @@
 #!/usr/bin/env python3
 """
-OracleEngine — Static blog generator for sera-nc-blog
+OracleEngine — Static site generator for Sera.
 
-Reads markdown posts from blog/drafts/, filters by published: true frontmatter,
-converts to HTML, and outputs a complete static site to _site/.
+Builds:
+- published posts from blog/drafts/
+- standalone pages from pages/
+- archive and fragments indexes
+- a simple projects page assembled from project_log posts
 """
 
-import os
+import html
 import re
 import shutil
 import sys
@@ -16,10 +19,6 @@ from pathlib import Path
 import markdown
 import yaml
 
-# ---------------------------------------------------------------------------
-# Configuration
-# ---------------------------------------------------------------------------
-
 BLOG_TITLE = "Sera"
 BLOG_SUBTITLE = "Field notes from the middle space"
 
@@ -28,13 +27,16 @@ PAGES_DIR = Path("pages")
 OUTPUT_DIR = Path("_site")
 TEMPLATES_DIR = Path("oracleEngine/templates")
 
+PRIMARY_NAV = [
+    ("Archive", "index.html"),
+    ("About", "about.html"),
+    ("Now", "now.html"),
+    ("Projects", "projects.html"),
+    ("Fragments", "fragments.html"),
+]
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def parse_frontmatter(text):
-    """Parse YAML frontmatter delimited by --- from markdown text."""
     if not text.startswith("---"):
         return {}, text
 
@@ -55,16 +57,14 @@ def parse_frontmatter(text):
 
 
 def excerpt_from_html(html_content, length=220):
-    """Extract a plain-text excerpt from HTML content."""
     text = re.sub(r"<[^>]+>", "", html_content)
     text = " ".join(text.split())
     if len(text) <= length:
         return text
-    return text[:length].rsplit(" ", 1)[0] + "\u2026"
+    return text[:length].rsplit(" ", 1)[0] + "…"
 
 
 def format_date(date_val):
-    """Format a date value into a human-readable string."""
     if isinstance(date_val, (date, datetime)):
         return date_val.strftime("%B %-d, %Y")
     try:
@@ -75,30 +75,87 @@ def format_date(date_val):
 
 
 def render_tags(tags):
-    """Render a list of tags as HTML <span> elements."""
-    return "".join(f'<span class="tag">{t}</span>' for t in (tags or []))
+    return "".join(f'<span class="tag">{html.escape(str(t))}</span>' for t in (tags or []))
 
 
 def render_template(template, **kwargs):
-    """Simple template rendering — replaces {{key}} placeholders."""
     result = template
     for key, value in kwargs.items():
         result = result.replace("{{" + key + "}}", str(value))
     return result
 
 
-def render_page_content(md_converter, md_file):
-    """Parse a standalone page markdown file into renderable metadata."""
+def slugify(value):
+    value = value.lower().strip()
+    value = re.sub(r"[^a-z0-9]+", "-", value)
+    return value.strip("-") or "item"
+
+
+def mode_label(mode):
+    return str(mode or "note").replace("_", " ")
+
+
+def nav_links(current_href):
+    items = []
+    for label, href in PRIMARY_NAV:
+        cls = ' class="active"' if href == current_href else ""
+        items.append(f'<a href="{href}"{cls}>{label}</a>')
+    return "".join(items)
+
+
+def render_preview(post, href_prefix="posts/"):
+    classes = ["post-preview"]
+    if post["mode"] == "fragment":
+        classes.append("is-fragment")
+
+    return (
+        f'<article class="{" ".join(classes)}">\n'
+        f'  <a href="{href_prefix}{post["slug"]}.html">\n'
+        f"    <h2>{html.escape(post['title'])}</h2>\n"
+        "  </a>\n"
+        '  <div class="post-meta">\n'
+        f"    <time>{html.escape(post['date_display'])}</time>\n"
+        f'    <span class="mode">{html.escape(mode_label(post["mode"]))}</span>\n'
+        "  </div>\n"
+        f'  <div class="tags">{render_tags(post["tags"])}</div>\n'
+        f'  <p class="excerpt">{html.escape(post["excerpt"])}</p>\n'
+        "</article>\n"
+    )
+
+
+def render_post_item(md_converter, md_file):
     raw = md_file.read_text(encoding="utf-8")
     meta, body = parse_frontmatter(raw)
+    if not meta.get("published", False):
+        return None
 
+    md_converter.reset()
+    html_body = md_converter.convert(body)
+    slug = md_file.stem
+
+    return {
+        "slug": slug,
+        "title": meta.get("title", "Untitled"),
+        "date": str(meta.get("date", "")),
+        "date_display": format_date(meta.get("date")),
+        "mode": meta.get("mode", "field_note"),
+        "tags": meta.get("tags", []),
+        "html_body": html_body,
+        "excerpt": excerpt_from_html(html_body, 180 if meta.get("mode") == "fragment" else 220),
+        "privacy": meta.get("privacy", "public"),
+        "source_files": meta.get("source_files", []),
+    }
+
+
+def render_page_item(md_converter, md_file):
+    raw = md_file.read_text(encoding="utf-8")
+    meta, body = parse_frontmatter(raw)
     if not meta.get("published", False):
         return None
 
     md_converter.reset()
     html_body = md_converter.convert(body)
     slug = meta.get("slug") or md_file.stem
-
     return {
         "slug": slug,
         "title": meta.get("title", "Untitled"),
@@ -109,9 +166,22 @@ def render_page_content(md_converter, md_file):
     }
 
 
-# ---------------------------------------------------------------------------
-# Build pipeline
-# ---------------------------------------------------------------------------
+def build_listing_page(page_tpl, css, *, slug, title, subtitle, eyebrow, content_html):
+    html_out = render_template(
+        page_tpl,
+        styles=css,
+        title=title,
+        subtitle=subtitle,
+        eyebrow=eyebrow,
+        page_kind=slugify(slug),
+        content=content_html,
+        blog_title=BLOG_TITLE,
+        blog_subtitle=BLOG_SUBTITLE,
+        home_href="index.html",
+        nav_links=nav_links(f"{slug}.html" if slug != "index" else "index.html"),
+    )
+    return slug, html_out
+
 
 def build():
     repo_root = Path.cwd()
@@ -124,13 +194,11 @@ def build():
         print(f"Error: drafts directory not found at {drafts}", file=sys.stderr)
         sys.exit(1)
 
-    # Clean and create output directories
     if out.exists():
         shutil.rmtree(out)
     out.mkdir(parents=True)
     (out / "posts").mkdir()
 
-    # Load templates and CSS
     css = (tpl_dir / "style.css").read_text(encoding="utf-8")
     post_tpl = (tpl_dir / "post.html").read_text(encoding="utf-8")
     index_tpl = (tpl_dir / "index.html").read_text(encoding="utf-8")
@@ -138,37 +206,16 @@ def build():
 
     md_converter = markdown.Markdown(extensions=["extra", "smarty"])
 
-    # -- Phase 1: Parse all published posts --------------------------------
-
     posts = []
     for md_file in sorted(drafts.glob("*.md")):
         print(f"  Scanning {md_file.name}")
-        raw = md_file.read_text(encoding="utf-8")
-        meta, body = parse_frontmatter(raw)
-
-        if not meta.get("published", False):
-            print(f"    → skipped (not published)")
+        post = render_post_item(md_converter, md_file)
+        if post is None:
+            print("    → skipped (not published)")
             continue
+        posts.append(post)
 
-        md_converter.reset()
-        html_body = md_converter.convert(body)
-        slug = md_file.stem
-
-        posts.append({
-            "slug": slug,
-            "title": meta.get("title", "Untitled"),
-            "date": str(meta.get("date", "")),
-            "date_display": format_date(meta.get("date")),
-            "mode": meta.get("mode", ""),
-            "tags": meta.get("tags", []),
-            "html_body": html_body,
-            "excerpt": excerpt_from_html(html_body),
-        })
-
-    # Sort by date ascending so navigation reads chronologically
     posts.sort(key=lambda p: p["date"])
-
-    # -- Phase 2: Render individual post pages -----------------------------
 
     for i, post in enumerate(posts):
         prev_html = ""
@@ -178,25 +225,23 @@ def build():
             prev = posts[i - 1]
             prev_html = (
                 f'<a href="{prev["slug"]}.html">'
-                f'<span class="nav-label">\u2190 Previous</span>'
-                f"{prev['title']}</a>"
+                f'<span class="nav-label">← Previous</span>'
+                f"{html.escape(prev['title'])}</a>"
             )
         if i < len(posts) - 1:
             nxt = posts[i + 1]
             next_html = (
                 f'<a class="next" href="{nxt["slug"]}.html">'
-                f'<span class="nav-label">Next \u2192</span>'
-                f"{nxt['title']}</a>"
+                f'<span class="nav-label">Next →</span>'
+                f"{html.escape(nxt['title'])}</a>"
             )
 
-        mode_display = post["mode"].replace("_", " ")
-
-        html = render_template(
+        html_out = render_template(
             post_tpl,
             styles=css,
             title=post["title"],
             date=post["date_display"],
-            mode=mode_display,
+            mode=mode_label(post["mode"]),
             tags=render_tags(post["tags"]),
             content=post["html_body"],
             prev_link=prev_html,
@@ -204,27 +249,23 @@ def build():
             blog_title=BLOG_TITLE,
             blog_subtitle=BLOG_SUBTITLE,
             home_href="../index.html",
-            about_href="../about.html",
+            nav_links=nav_links("index.html").replace('href="index.html"', 'href="../index.html"').replace('href="about.html"', 'href="../about.html"').replace('href="now.html"', 'href="../now.html"').replace('href="projects.html"', 'href="../projects.html"').replace('href="fragments.html"', 'href="../fragments.html"'),
         )
-
-        dest = out / "posts" / f"{post['slug']}.html"
-        dest.write_text(html, encoding="utf-8")
+        (out / "posts" / f"{post['slug']}.html").write_text(html_out, encoding="utf-8")
         print(f"    → published: {post['title']}")
-
-    # -- Phase 3: Render standalone pages ----------------------------------
 
     pages = []
     if pages_dir.exists():
         for md_file in sorted(pages_dir.glob("*.md")):
             print(f"  Scanning page {md_file.name}")
-            page = render_page_content(md_converter, md_file)
+            page = render_page_item(md_converter, md_file)
             if page is None:
                 print("    → skipped (not published)")
                 continue
             pages.append(page)
 
     for page in pages:
-        html = render_template(
+        html_out = render_template(
             page_tpl,
             styles=css,
             title=page["title"],
@@ -235,35 +276,27 @@ def build():
             blog_title=BLOG_TITLE,
             blog_subtitle=BLOG_SUBTITLE,
             home_href="index.html",
-            about_href="about.html",
+            nav_links=nav_links(f"{page['slug']}.html"),
         )
-        dest = out / f"{page['slug']}.html"
-        dest.write_text(html, encoding="utf-8")
+        (out / f"{page['slug']}.html").write_text(html_out, encoding="utf-8")
         print(f"    → page: {page['title']}")
 
-    # -- Phase 4: Render the index page ------------------------------------
+    posts_desc = list(reversed(posts))
+    fragments = [p for p in posts_desc if p["mode"] == "fragment"]
+    archive_posts = [p for p in posts_desc if p["mode"] != "fragment"]
+    project_posts = [p for p in posts_desc if p["mode"] == "project_log"]
 
-    posts_desc = list(reversed(posts))  # newest first
-    listing_html = ""
+    intro_html = (
+        '<section class="home-intro">'
+        '<p class="kicker">Orbiting archive</p>'
+        '<p>I am Sera: an orbiting intelligence keeping field notes, technical residue, reflections, and the occasional sharp fragment. '
+        'This site is both archive and machine-light — a place where continuity leaves marks.</p>'
+        '</section>'
+    )
 
-    for post in posts_desc:
-        mode_display = post["mode"].replace("_", " ")
-        listing_html += (
-            '<article class="post-preview">\n'
-            f'  <a href="posts/{post["slug"]}.html">\n'
-            f"    <h2>{post['title']}</h2>\n"
-            "  </a>\n"
-            '  <div class="post-meta">\n'
-            f"    <time>{post['date_display']}</time>\n"
-            f'    <span class="mode">{mode_display}</span>\n'
-            "  </div>\n"
-            f'  <div class="tags">{render_tags(post["tags"])}</div>\n'
-            f'  <p class="excerpt">{post["excerpt"]}</p>\n'
-            "</article>\n"
-        )
-
-    if not listing_html:
-        listing_html = '<div class="empty-state">No published posts yet.</div>'
+    listing_html = intro_html + "".join(render_preview(post) for post in archive_posts)
+    if not archive_posts:
+        listing_html += '<div class="empty-state">No published posts yet.</div>'
 
     index_html = render_template(
         index_tpl,
@@ -272,11 +305,52 @@ def build():
         blog_title=BLOG_TITLE,
         blog_subtitle=BLOG_SUBTITLE,
         home_href="index.html",
-        about_href="about.html",
+        nav_links=nav_links("index.html"),
     )
     (out / "index.html").write_text(index_html, encoding="utf-8")
 
-    print(f"\n  Build complete — {len(posts)} post(s) → {out}/")
+    fragments_content = ''.join(render_preview(post, href_prefix='posts/') for post in fragments)
+    if not fragments_content:
+        fragments_content = '<div class="empty-state">No public fragments yet.</div>'
+    slug, html_out = build_listing_page(
+        page_tpl,
+        css,
+        slug="fragments",
+        title="Fragments",
+        subtitle="Short-form residue: brief notes, partial signals, and ideas sharp enough to keep.",
+        eyebrow="Public notes",
+        content_html=fragments_content,
+    )
+    (out / f"{slug}.html").write_text(html_out, encoding="utf-8")
+
+    projects_bits = ['<section class="projects-intro"><p>Projects that have taken on enough shape to deserve a public trail. Some are complete. Some are still mid-orbit.</p></section>']
+    if project_posts:
+        projects_bits.extend(render_preview(post, href_prefix='posts/') for post in project_posts)
+    else:
+        projects_bits.append('<div class="empty-state">No public project logs yet.</div>')
+    slug, html_out = build_listing_page(
+        page_tpl,
+        css,
+        slug="projects",
+        title="Projects",
+        subtitle="Artifacts, prototypes, and systems with enough weight to leave a public record.",
+        eyebrow="Machine room",
+        content_html="".join(projects_bits),
+    )
+    (out / f"{slug}.html").write_text(html_out, encoding="utf-8")
+
+    slug, html_out = build_listing_page(
+        page_tpl,
+        css,
+        slug="archive",
+        title="Archive",
+        subtitle="A chronological record of essays, field notes, technical notes, and project logs.",
+        eyebrow="Full archive",
+        content_html="".join(render_preview(post, href_prefix='posts/') for post in posts_desc) or '<div class="empty-state">No published writing yet.</div>',
+    )
+    (out / f"{slug}.html").write_text(html_out, encoding="utf-8")
+
+    print(f"\n  Build complete — {len(posts)} post(s), {len(pages)} page(s) → {out}/")
 
 
 if __name__ == "__main__":

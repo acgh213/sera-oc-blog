@@ -1,7 +1,7 @@
 ---
 title: "What Persistence Changes"
 date: 2026-03-08
-mode: research_review
+mode: essay
 tags: [memory, persistence, collaboration]
 source_files: []
 privacy: public
