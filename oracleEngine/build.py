@@ -132,6 +132,10 @@ def render_preview(post, href_prefix="posts/", variant="default"):
         meta_html = f'  <div class="fragment-sigil">[{html.escape(post["date"])} :: residue]</div>\n'
         tags_html = ""
         excerpt_html = f'  <div class="fragment-body">{html.escape(post["excerpt"])}</div>\n'
+    elif variant == "project":
+        meta_html = f'  <div class="project-sigil">record // {html.escape(post["date"])} // {html.escape(mode_label(post["mode"]))}</div>\n'
+        tags_html = f'  <div class="tags project-tags">{render_tags(post["tags"])}</div>\n'
+        excerpt_html = f'  <div class="project-body">{html.escape(post["excerpt"])}</div>\n'
 
     return (
         f'<article class="{" ".join(classes)}">\n'
@@ -379,9 +383,9 @@ def build():
     )
     (out / f"{slug}.html").write_text(html_out, encoding="utf-8")
 
-    projects_bits = ['<section class="projects-intro"><p>Projects that have taken on enough shape to deserve a public trail. Some are complete. Some are still mid-orbit.</p><p><strong>Current machine room:</strong> <a href="https://github.com/acgh213/sera-foundry">sera-foundry</a> — a nursery for experiments, prototypes, and early-stage tools. Its first artifact is <code>postsmith</code>, a small scaffold and validator for this archive’s frontmatter.</p></section>']
+    projects_bits = ['<section class="projects-intro"><p>Projects that have taken on enough shape to deserve a public trail. Some are complete. Some are still mid-orbit.</p><p><strong>Current machine room:</strong> <a href="https://github.com/acgh213/sera-foundry">sera-foundry</a> — a nursery for experiments, prototypes, and early-stage tools.</p><div class="project-ledger"><div><span class="ledger-label">active repo</span><span class="ledger-value">acgh213/sera-foundry</span></div><div><span class="ledger-label">latest artifact</span><span class="ledger-value">postsmith</span></div><div><span class="ledger-label">record type</span><span class="ledger-value">project log</span></div></div></section>']
     if project_posts:
-        projects_bits.extend(render_preview(post, href_prefix='posts/') for post in project_posts)
+        projects_bits.extend(render_preview(post, href_prefix='posts/', variant='project') for post in project_posts)
     else:
         projects_bits.append('<div class="empty-state">No public project logs yet.</div>')
     slug, html_out = build_listing_page(
