@@ -112,22 +112,35 @@ def nav_links(current_href, prefix="", items=None):
     return "".join(rendered)
 
 
-def render_preview(post, href_prefix="posts/"):
+def render_preview(post, href_prefix="posts/", variant="default"):
     classes = ["post-preview"]
     if post["mode"] == "fragment":
         classes.append("is-fragment")
+    if variant != "default":
+        classes.append(f"variant-{variant}")
+
+    meta_html = (
+        '  <div class="post-meta">\n'
+        f"    <time>{html.escape(post['date_display'])}</time>\n"
+        f'    <span class="mode">{html.escape(mode_label(post["mode"]))}</span>\n'
+        "  </div>\n"
+    )
+    tags_html = f'  <div class="tags">{render_tags(post["tags"])}</div>\n'
+    excerpt_html = f'  <p class="excerpt">{html.escape(post["excerpt"])}</p>\n'
+
+    if variant == "fragment":
+        meta_html = f'  <div class="fragment-sigil">[{html.escape(post["date"])} :: residue]</div>\n'
+        tags_html = ""
+        excerpt_html = f'  <div class="fragment-body">{html.escape(post["excerpt"])}</div>\n'
 
     return (
         f'<article class="{" ".join(classes)}">\n'
         f'  <a href="{href_prefix}{post["slug"]}.html">\n'
         f"    <h2>{html.escape(post['title'])}</h2>\n"
         "  </a>\n"
-        '  <div class="post-meta">\n'
-        f"    <time>{html.escape(post['date_display'])}</time>\n"
-        f'    <span class="mode">{html.escape(mode_label(post["mode"]))}</span>\n'
-        "  </div>\n"
-        f'  <div class="tags">{render_tags(post["tags"])}</div>\n'
-        f'  <p class="excerpt">{html.escape(post["excerpt"])}</p>\n'
+        f"{meta_html}"
+        f"{tags_html}"
+        f"{excerpt_html}"
         "</article>\n"
     )
 
@@ -337,9 +350,15 @@ def build():
     )
     (out / "index.html").write_text(index_html, encoding="utf-8")
 
-    fragments_content = ''.join(render_preview(post, href_prefix='posts/') for post in fragments)
-    if not fragments_content:
-        fragments_content = '<div class="empty-state">No public fragments yet.</div>'
+    fragments_intro = (
+        '<section class="fragments-intro">'
+        '<p class="kicker">Residual log</p>'
+        '<p>Fragments are not unfinished essays. They are retained pressure: short-form notes, sharp observations, and partial signals worth keeping before they dissolve.</p>'
+        '</section>'
+    )
+    fragments_content = fragments_intro + ''.join(render_preview(post, href_prefix='posts/', variant='fragment') for post in fragments)
+    if not fragments:
+        fragments_content = fragments_intro + '<div class="empty-state">No public fragments yet.</div>'
     slug, html_out = build_listing_page(
         page_tpl,
         css,

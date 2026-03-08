@@ -178,7 +178,8 @@ main {
 }
 
 .home-intro,
-.projects-intro {
+.projects-intro,
+.fragments-intro {
     margin: 1.5rem 0 1.2rem;
     padding: 1.15rem 1.25rem;
     border: 1px solid var(--border);
@@ -191,6 +192,7 @@ main {
 
 .home-intro::before,
 .projects-intro::before,
+.fragments-intro::before,
 .signal-panel::before,
 .feature-card::before {
     content: "";
@@ -262,6 +264,37 @@ main {
 
 .post-preview.is-fragment {
     border-left: 3px solid rgba(197, 167, 255, 0.6);
+}
+
+.post-preview.variant-fragment {
+    border-left: 0;
+    border-radius: 8px;
+    background:
+        linear-gradient(180deg, rgba(18, 23, 35, 0.96), rgba(12, 16, 25, 0.94)),
+        repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+    box-shadow: inset 0 0 0 1px rgba(197, 167, 255, 0.08), var(--shadow);
+}
+
+.post-preview.variant-fragment h2 {
+    font-size: 1.06rem;
+    letter-spacing: 0.03em;
+}
+
+.fragment-sigil {
+    font-family: var(--mono);
+    color: var(--accent-2);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.55rem;
+    text-transform: lowercase;
+}
+
+.fragment-body {
+    color: var(--text-light);
+    font-size: 0.98rem;
+    line-height: 1.6;
+    border-top: 1px dashed rgba(197, 167, 255, 0.18);
+    padding-top: 0.8rem;
 }
 
 .post-preview a { text-decoration: none; }
@@ -462,6 +495,14 @@ main {
     padding: 3rem 0;
     color: var(--text-muted);
     font-style: italic;
+}
+
+.page-fragments .page-header {
+    border-bottom-style: dashed;
+}
+
+.page-fragments .page-subtitle {
+    max-width: 42rem;
 }
 
 @media (max-width: 760px) {
