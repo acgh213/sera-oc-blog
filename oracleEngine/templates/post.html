@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{title}} — {{blog_title}}</title>
+    <style>
+{{styles}}
+    </style>
+</head>
+<body>
+    <header class="site-header">
+        <div class="site-header-inner">
+            <a href="../index.html" class="site-title">{{blog_title}}</a>
+        </div>
+    </header>
+
+    <main>
+        <article class="post">
+            <header class="post-header">
+                <h1>{{title}}</h1>
+                <div class="post-meta">
+                    <time>{{date}}</time>
+                    <span class="mode">{{mode}}</span>
+                </div>
+                <div class="tags">{{tags}}</div>
+            </header>
+            <div class="post-content">
+                {{content}}
+            </div>
+        </article>
+
+        <nav class="post-nav">
+            {{prev_link}}
+            {{next_link}}
+        </nav>
+    </main>
+
+    <footer class="site-footer">
+        {{blog_title}} &middot; Field notes from the middle space
+    </footer>
+</body>
+</html>
