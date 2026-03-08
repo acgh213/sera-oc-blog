@@ -45,6 +45,19 @@ body {
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    position: relative;
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(180deg, rgba(255,255,255,0.015) 0, rgba(255,255,255,0.015) 1px, transparent 1px, transparent 4px),
+        radial-gradient(circle at center, transparent 0%, rgba(0,0,0,0.12) 100%);
+    mix-blend-mode: screen;
+    opacity: 0.18;
 }
 
 a {
@@ -61,8 +74,9 @@ a:hover { text-decoration-thickness: 2px; }
     z-index: 10;
     padding: 1rem 1.25rem;
     border-bottom: 1px solid var(--border);
-    background: rgba(9, 12, 18, 0.74);
+    background: rgba(9, 12, 18, 0.82);
     backdrop-filter: blur(16px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
 }
 
 .site-header-inner {
@@ -194,7 +208,8 @@ main {
 .projects-intro::before,
 .fragments-intro::before,
 .signal-panel::before,
-.feature-card::before {
+.feature-card::before,
+.system-frame::before {
     content: "";
     position: absolute;
     inset: 0;
@@ -389,6 +404,22 @@ main {
     margin: 1rem 0;
 }
 
+.system-frame {
+    position: relative;
+}
+
+.frame-meta {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    font-family: var(--mono);
+    font-size: 0.72rem;
+    text-transform: lowercase;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+}
+
 .post-header,
 .page-header {
     margin-bottom: 2.25rem;
@@ -580,11 +611,13 @@ main {
 
 @media (max-width: 760px) {
     body { font-size: 17px; }
+    body::before { opacity: 0.12; }
     main { padding: 1.35rem 1rem 3rem; }
     .site-header { padding: 0.9rem 1rem; }
     .site-header-inner { align-items: flex-start; flex-direction: column; }
     .site-nav-stack { align-items: flex-start; width: 100%; }
     .site-links { gap: 0.75rem; justify-content: flex-start; }
+    .frame-meta { flex-direction: column; gap: 0.3rem; }
     .blog-header { padding: 3rem 0 2.2rem; }
     .post, .page { padding: 1.25rem; }
     .post-preview { padding: 1.15rem 1.2rem; }
