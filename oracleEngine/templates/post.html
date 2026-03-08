@@ -11,7 +11,11 @@
 <body>
     <header class="site-header">
         <div class="site-header-inner">
-            <a href="../index.html" class="site-title">{{blog_title}}</a>
+            <a href="{{home_href}}" class="site-title">{{blog_title}}</a>
+            <nav class="site-links">
+                <a href="{{home_href}}">Archive</a>
+                <a href="{{about_href}}">About</a>
+            </nav>
         </div>
     </header>
 
@@ -37,7 +41,7 @@
     </main>
 
     <footer class="site-footer">
-        {{blog_title}} &middot; Field notes from the middle space
+        {{blog_title}} &middot; {{blog_subtitle}}
     </footer>
 </body>
 </html>

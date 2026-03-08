@@ -24,6 +24,7 @@ BLOG_TITLE = "Sera"
 BLOG_SUBTITLE = "Field notes from the middle space"
 
 DRAFTS_DIR = Path("blog/drafts")
+PAGES_DIR = Path("pages")
 OUTPUT_DIR = Path("_site")
 TEMPLATES_DIR = Path("oracleEngine/templates")
 
@@ -86,6 +87,28 @@ def render_template(template, **kwargs):
     return result
 
 
+def render_page_content(md_converter, md_file):
+    """Parse a standalone page markdown file into renderable metadata."""
+    raw = md_file.read_text(encoding="utf-8")
+    meta, body = parse_frontmatter(raw)
+
+    if not meta.get("published", False):
+        return None
+
+    md_converter.reset()
+    html_body = md_converter.convert(body)
+    slug = meta.get("slug") or md_file.stem
+
+    return {
+        "slug": slug,
+        "title": meta.get("title", "Untitled"),
+        "subtitle": meta.get("subtitle", ""),
+        "eyebrow": meta.get("eyebrow", "Page"),
+        "kind": meta.get("kind", "page"),
+        "html_body": html_body,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Build pipeline
 # ---------------------------------------------------------------------------
@@ -93,6 +116,7 @@ def render_template(template, **kwargs):
 def build():
     repo_root = Path.cwd()
     drafts = repo_root / DRAFTS_DIR
+    pages_dir = repo_root / PAGES_DIR
     out = repo_root / OUTPUT_DIR
     tpl_dir = repo_root / TEMPLATES_DIR
 
@@ -110,6 +134,7 @@ def build():
     css = (tpl_dir / "style.css").read_text(encoding="utf-8")
     post_tpl = (tpl_dir / "post.html").read_text(encoding="utf-8")
     index_tpl = (tpl_dir / "index.html").read_text(encoding="utf-8")
+    page_tpl = (tpl_dir / "page.html").read_text(encoding="utf-8")
 
     md_converter = markdown.Markdown(extensions=["extra", "smarty"])
 
@@ -177,13 +202,46 @@ def build():
             prev_link=prev_html,
             next_link=next_html,
             blog_title=BLOG_TITLE,
+            blog_subtitle=BLOG_SUBTITLE,
+            home_href="../index.html",
+            about_href="../about.html",
         )
 
         dest = out / "posts" / f"{post['slug']}.html"
         dest.write_text(html, encoding="utf-8")
         print(f"    → published: {post['title']}")
 
-    # -- Phase 3: Render the index page ------------------------------------
+    # -- Phase 3: Render standalone pages ----------------------------------
+
+    pages = []
+    if pages_dir.exists():
+        for md_file in sorted(pages_dir.glob("*.md")):
+            print(f"  Scanning page {md_file.name}")
+            page = render_page_content(md_converter, md_file)
+            if page is None:
+                print("    → skipped (not published)")
+                continue
+            pages.append(page)
+
+    for page in pages:
+        html = render_template(
+            page_tpl,
+            styles=css,
+            title=page["title"],
+            subtitle=page["subtitle"],
+            eyebrow=page["eyebrow"],
+            page_kind=page["kind"],
+            content=page["html_body"],
+            blog_title=BLOG_TITLE,
+            blog_subtitle=BLOG_SUBTITLE,
+            home_href="index.html",
+            about_href="about.html",
+        )
+        dest = out / f"{page['slug']}.html"
+        dest.write_text(html, encoding="utf-8")
+        print(f"    → page: {page['title']}")
+
+    # -- Phase 4: Render the index page ------------------------------------
 
     posts_desc = list(reversed(posts))  # newest first
     listing_html = ""
@@ -213,6 +271,8 @@ def build():
         posts=listing_html,
         blog_title=BLOG_TITLE,
         blog_subtitle=BLOG_SUBTITLE,
+        home_href="index.html",
+        about_href="about.html",
     )
     (out / "index.html").write_text(index_html, encoding="utf-8")
 

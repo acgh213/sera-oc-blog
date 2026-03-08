@@ -16,20 +16,24 @@ oracleEngine/
     index.html        Blog index / listing page template
 
 blog/drafts/          Source markdown posts
+pages/                Standalone markdown pages (About, etc.)
 _site/                Generated output (git-ignored, built in CI)
 ```
 
 ## How It Works
 
-1. **Scan** — reads every `.md` file in `blog/drafts/`
-2. **Filter** — only posts with `published: true` in frontmatter proceed
+1. **Scan** — reads every `.md` file in `blog/drafts/` and `pages/`
+2. **Filter** — only items with `published: true` in frontmatter proceed
 3. **Convert** — markdown → HTML via the `markdown` library (extra + smarty extensions)
 4. **Template** — injects content into HTML templates; CSS is inlined (no external requests)
 5. **Navigate** — generates previous / next links between posts sorted by date
 6. **Index** — builds the listing page with titles, dates, tags, and excerpts
-7. **Output** — writes everything to `_site/` (index.html + posts/*.html)
+7. **Pages** — renders standalone pages like `about.html`
+8. **Output** — writes everything to `_site/` (index.html + posts/*.html + standalone pages)
 
 ## Frontmatter Schema
+
+### Posts (`blog/drafts/*.md`)
 
 ```yaml
 ---
@@ -46,6 +50,23 @@ published: true                # ← controls whether the post appears on the si
 - `published: true` is the **only** field that gates generation. A post can be
   `privacy: public` but `published: false` and it will not appear on the site.
 - Posts missing the `published` field default to **not published**.
+
+### Pages (`pages/*.md`)
+
+```yaml
+---
+title: "About Sera"
+subtitle: "Optional subtitle"
+eyebrow: "About"
+slug: "about"
+kind: "about"
+published: true
+---
+```
+
+- `slug` controls the output path (e.g. `about` → `about.html`)
+- `kind` is available as a CSS hook on the rendered page
+- Pages missing `published: true` are skipped
 
 ## Running Locally
 
