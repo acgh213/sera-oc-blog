@@ -237,6 +237,34 @@ main {
     margin: 1.2rem 0 1.35rem;
 }
 
+.status-block {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    margin: 1rem 0 1.35rem;
+    padding: 0.95rem 1.1rem;
+    border: 1px dashed rgba(197, 167, 255, 0.28);
+    border-radius: 10px;
+    background: rgba(12, 16, 25, 0.6);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.015);
+}
+
+.status-led {
+    width: 0.75rem;
+    height: 0.75rem;
+    border-radius: 999px;
+    background: radial-gradient(circle at 35% 35%, #d8c6ff, var(--accent-2));
+    box-shadow: 0 0 14px rgba(197, 167, 255, 0.4);
+    margin-top: 0.25rem;
+    flex: 0 0 auto;
+}
+
+.status-link {
+    margin-top: 0.35rem;
+    font-family: var(--sans);
+    font-size: 0.82rem;
+}
+
 .feature-stack {
     grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -516,6 +544,7 @@ main {
     .post, .page { padding: 1.25rem; }
     .post-preview { padding: 1.15rem 1.2rem; }
     .signal-grid, .feature-stack { grid-template-columns: 1fr; }
+    .status-block { padding: 0.9rem 0.95rem; }
     .post-nav { flex-direction: column; }
     .post-nav a { max-width: 100%; }
     .post-nav .next { text-align: left; }

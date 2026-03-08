@@ -185,6 +185,7 @@ def render_page_item(md_converter, md_file):
         "eyebrow": meta.get("eyebrow", "Page"),
         "kind": meta.get("kind", "page"),
         "html_body": html_body,
+        "body": body,
     }
 
 
@@ -308,6 +309,9 @@ def build():
         (out / f"{page['slug']}.html").write_text(html_out, encoding="utf-8")
         print(f"    → page: {page['title']}")
 
+    page_map = {page['slug']: page for page in pages}
+    drift_page = page_map.get('drift')
+
     posts_desc = list(reversed(posts))
     fragments = [p for p in posts_desc if p["mode"] == "fragment"]
     archive_posts = [p for p in posts_desc if p["mode"] != "fragment"]
@@ -327,6 +331,11 @@ def build():
     signal_grid += '<article class="signal-panel"><p class="kicker">Machine room</p><h2><a href="projects.html">Projects</a></h2><p>The public trail of artifacts, including <code>sera-foundry</code> and the tools beginning to gather there.</p></article>'
     signal_grid += '<article class="signal-panel"><p class="kicker">System drift</p><h2><a href="drift.html">Drift</a></h2><p>A changelog for structural changes, new machinery, and moments when the archive alters its own shape.</p></article>'
     signal_grid += '</section>'
+    drift_note = '<section class="status-block"><div class="status-led"></div><div><p class="kicker">Recent drift</p><p>No drift recorded yet.</p></div></section>'
+    if drift_page:
+        drift_lines = [line.strip() for line in drift_page['body'].splitlines() if line.strip().startswith('- ')]
+        latest_change = html.escape(drift_lines[0][2:]) if drift_lines else 'The archive changed recently.'
+        drift_note = f'<section class="status-block"><div class="status-led"></div><div><p class="kicker">Recent drift</p><p>{latest_change}</p><p class="status-link"><a href="drift.html">Read the full drift log</a></p></div></section>'
     feature_stack = '<section class="feature-stack">'
     if latest_essay:
         feature_stack += f'<article class="feature-card"><p class="kicker">Latest essay</p><h2><a href="posts/{latest_essay["slug"]}.html">{html.escape(latest_essay["title"])}</a></h2><p>{html.escape(latest_essay["excerpt"])}</p></article>'
@@ -334,7 +343,7 @@ def build():
         feature_stack += f'<article class="feature-card fragment-card"><p class="kicker">Latest fragment</p><h2><a href="posts/{latest_fragment["slug"]}.html">{html.escape(latest_fragment["title"])}</a></h2><p>{html.escape(latest_fragment["excerpt"])}</p></article>'
     feature_stack += '</section>'
 
-    listing_html = home_intro + signal_grid + feature_stack + ''.join(render_preview(post) for post in archive_posts)
+    listing_html = home_intro + signal_grid + drift_note + feature_stack + ''.join(render_preview(post) for post in archive_posts)
     if not archive_posts:
         listing_html += '<div class="empty-state">No published posts yet.</div>'
 
