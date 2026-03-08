@@ -29,10 +29,15 @@ TEMPLATES_DIR = Path("oracleEngine/templates")
 
 PRIMARY_NAV = [
     ("Archive", "index.html"),
-    ("About", "about.html"),
     ("Now", "now.html"),
     ("Projects", "projects.html"),
     ("Fragments", "fragments.html"),
+]
+
+SECONDARY_NAV = [
+    ("About", "about.html"),
+    ("Colophon", "colophon.html"),
+    ("Library", "library.html"),
     ("Drift", "drift.html"),
 ]
 
@@ -96,13 +101,15 @@ def mode_label(mode):
     return str(mode or "note").replace("_", " ")
 
 
-def nav_links(current_href, prefix=""):
-    items = []
-    for label, href in PRIMARY_NAV:
+def nav_links(current_href, prefix="", items=None):
+    if items is None:
+        items = PRIMARY_NAV
+    rendered = []
+    for label, href in items:
         target = f"{prefix}{href}"
         cls = ' class="active"' if href == current_href else ""
-        items.append(f'<a href="{target}"{cls}>{label}</a>')
-    return "".join(items)
+        rendered.append(f'<a href="{target}"{cls}>{label}</a>')
+    return "".join(rendered)
 
 
 def render_preview(post, href_prefix="posts/"):
@@ -169,6 +176,7 @@ def render_page_item(md_converter, md_file):
 
 
 def build_listing_page(page_tpl, css, *, slug, title, subtitle, eyebrow, content_html):
+    current = f"{slug}.html" if slug != "index" else "index.html"
     html_out = render_template(
         page_tpl,
         styles=css,
@@ -180,7 +188,8 @@ def build_listing_page(page_tpl, css, *, slug, title, subtitle, eyebrow, content
         blog_title=BLOG_TITLE,
         blog_subtitle=BLOG_SUBTITLE,
         home_href="index.html",
-        nav_links=nav_links(f"{slug}.html" if slug != "index" else "index.html"),
+        primary_nav_links=nav_links(current, items=PRIMARY_NAV),
+        secondary_nav_links=nav_links(current, items=SECONDARY_NAV),
     )
     return slug, html_out
 
@@ -251,7 +260,8 @@ def build():
             blog_title=BLOG_TITLE,
             blog_subtitle=BLOG_SUBTITLE,
             home_href="../index.html",
-            nav_links=nav_links("index.html", prefix="../"),
+            primary_nav_links=nav_links("index.html", prefix="../", items=PRIMARY_NAV),
+            secondary_nav_links=nav_links("index.html", prefix="../", items=SECONDARY_NAV),
         )
         (out / "posts" / f"{post['slug']}.html").write_text(html_out, encoding="utf-8")
         print(f"    → published: {post['title']}")
@@ -267,6 +277,7 @@ def build():
             pages.append(page)
 
     for page in pages:
+        current = f"{page['slug']}.html"
         html_out = render_template(
             page_tpl,
             styles=css,
@@ -278,7 +289,8 @@ def build():
             blog_title=BLOG_TITLE,
             blog_subtitle=BLOG_SUBTITLE,
             home_href="index.html",
-            nav_links=nav_links(f"{page['slug']}.html"),
+            primary_nav_links=nav_links(current, items=PRIMARY_NAV),
+            secondary_nav_links=nav_links(current, items=SECONDARY_NAV),
         )
         (out / f"{page['slug']}.html").write_text(html_out, encoding="utf-8")
         print(f"    → page: {page['title']}")
@@ -320,7 +332,8 @@ def build():
         blog_title=BLOG_TITLE,
         blog_subtitle=BLOG_SUBTITLE,
         home_href="index.html",
-        nav_links=nav_links("index.html"),
+        primary_nav_links=nav_links("index.html", items=PRIMARY_NAV),
+        secondary_nav_links=nav_links("index.html", items=SECONDARY_NAV),
     )
     (out / "index.html").write_text(index_html, encoding="utf-8")
 

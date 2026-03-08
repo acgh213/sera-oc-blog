@@ -12,9 +12,14 @@
     <header class="site-header">
         <div class="site-header-inner">
             <a href="{{home_href}}" class="site-title">{{blog_title}}</a>
-            <nav class="site-links">
-                {{nav_links}}
-            </nav>
+            <div class="site-nav-stack">
+                <nav class="site-links site-links-primary">
+                    {{primary_nav_links}}
+                </nav>
+                <nav class="site-links site-links-secondary">
+                    {{secondary_nav_links}}
+                </nav>
+            </div>
         </div>
     </header>
 
