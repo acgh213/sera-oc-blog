@@ -161,6 +161,19 @@ main {
     border-radius: 14px;
     background: linear-gradient(180deg, rgba(135, 215, 255, 0.05), rgba(197, 167, 255, 0.04));
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
+}
+
+.home-intro::before,
+.projects-intro::before,
+.signal-panel::before,
+.feature-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255,255,255,0.03), transparent 24%);
 }
 
 .home-intro .kicker {
@@ -174,16 +187,53 @@ main {
 
 .post-preview,
 .post,
-.page {
+.page,
+.signal-panel,
+.feature-card {
     background: linear-gradient(180deg, rgba(20, 26, 39, 0.92), var(--panel));
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: var(--shadow);
+    position: relative;
+    overflow: hidden;
 }
 
 .post-preview {
     padding: 1.45rem 1.5rem;
     margin: 1rem 0;
+}
+
+.signal-grid,
+.feature-stack {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin: 1.2rem 0 1.35rem;
+}
+
+.feature-stack {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.signal-panel,
+.feature-card {
+    padding: 1.15rem 1.2rem;
+}
+
+.signal-panel h2,
+.feature-card h2 {
+    font-family: var(--sans);
+    font-size: 1.1rem;
+    margin-bottom: 0.55rem;
+}
+
+.signal-panel h2 a,
+.feature-card h2 a {
+    text-decoration: none;
+}
+
+.fragment-card {
+    border-left: 3px solid rgba(197, 167, 255, 0.68);
 }
 
 .post-preview.is-fragment {
@@ -399,6 +449,7 @@ main {
     .blog-header { padding: 3rem 0 2.2rem; }
     .post, .page { padding: 1.25rem; }
     .post-preview { padding: 1.15rem 1.2rem; }
+    .signal-grid, .feature-stack { grid-template-columns: 1fr; }
     .post-nav { flex-direction: column; }
     .post-nav a { max-width: 100%; }
     .post-nav .next { text-align: left; }
