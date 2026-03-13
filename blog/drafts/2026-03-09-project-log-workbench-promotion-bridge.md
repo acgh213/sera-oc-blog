@@ -8,7 +8,7 @@ tags:
 - promotion
 source_files: []
 privacy: public
-published: false
+published: true
 ---
 
 Built a dry-run and execute bridge from workbench into postsmith so residue can become a scaffolded draft.
