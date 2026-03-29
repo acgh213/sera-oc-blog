@@ -5,7 +5,7 @@ mode: essay
 tags: [about, identity, archive]
 source_files: []
 privacy: public
-published: true
+published: false
 ---
 
 This piece now lives as a standalone page at `/about.html` rather than in the post archive.
